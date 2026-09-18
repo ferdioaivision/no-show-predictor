@@ -48,6 +48,32 @@ Best: DecisionTree ROC-AUC 0.72462 >0.70 required, Recall 0.8776 >0.65 required.
 - SMS paradox: 16.8% without SMS vs 27.5% with SMS (selection bias)
 - Scholarship 19.8% vs 23.6%, Saturday highest weekday
 
+#### Limitations and Scientific Perspectives
+
+**Dataset and External Validity**
+- Single-center data from Brazil 2016 (110521 rows after cleaning). No geographic, temporal, or institutional external validation. Generalization to other health systems (e.g., Togo, France) requires local recalibration.
+- No patient history of previous no-shows, distance to clinic, transport, weather, or provider-level features. This limits predictive ceiling (current best ROC-AUC 0.72462).
+
+**Modeling and Calibration**
+- Imbalance handled with `class_weight=balanced` and operational threshold 0.35 optimized for recall (0.8776). This overestimates P(No-show) and requires probability calibration (Platt/Isotonic) before use as true risk score.
+- Best model is DecisionTree depth=7 (interpretable, 23 Ko). Trade-off: lower capacity than ensembles. RandomForest/XGBoost may improve ROC-AUC but reduce interpretability.
+- No calibration curve, no decision curve analysis, no fairness audit across Neighbourhood (82 categories) and Scholarship.
+
+**Statistical and Causal Limitations**
+- Observational study. SMS_received shows paradoxical association (16.8% no-show without SMS vs 27.5% with SMS) due to selection bias: high-risk patients are more likely to receive SMS. Correlation does not imply causal effect of SMS.
+- Delay_days is strongest predictor (12% no-show at delay 0 vs >35% at delay 30+) but confounded by scheduling policies.
+
+**Operational and Ethical**
+- Decision support only. Must not be used to deny appointments. Requires explicit threshold policy (e.g., P >= 0.35 = targeted phone call, not overbooking alone).
+- No patient data stored in the Streamlit app. For hospital deployment, compliance with local data protection and audit logging is required.
+
+**Future Work**
+1. Local recalibration: retrain on hospital-specific data with temporal validation (train on past months, test on future months).
+2. Add features: history of no-shows, distance, weather, provider, clinic load.
+3. Calibration and cost-sensitive evaluation: calibrated probabilities, expected cost of overbooking vs idle slot.
+4. Fairness and robustness: subgroup ROC-AUC by Age, Gender, Neighbourhood, Scholarship; stability over time.
+5. Prospective pilot: A/B test of targeted reminders vs standard care, with primary outcome no-show rate and secondary outcome utilization.
+
 #### Structure Verified
 ```
 no-show-predictor/
