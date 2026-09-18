@@ -1,7 +1,7 @@
 # no-show-predictor
 ### Predicting medical appointment no-shows - Binary classification decision support system
 
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue) ![ROC-AUC](https://img.shields.io/badge/ROC--AUC-0.7246-brightgreen) ![Status](https://img.shields.io/badge/Status-Complete-success) ![License](https://img.shields.io/badge/License-MIT-green)
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue) ![ROC-AUC](https://img.shields.io/badge/ROC--AUC-0.7246-brightgreen) ![Status](https://img.shields.io/badge/Status-Complete-success) ![License](https://img.shields.io/badge/License-MIT-green) [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ferdioaivision-no-show-predictor.streamlit.app/)
 
 **Author:** Kokouvi Ferdinand DJATA
 **Brand:** Ferdio Ai Vision
