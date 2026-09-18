@@ -26,7 +26,7 @@ model = load_model()
 clf = model.named_steps["clf"]
 preprocessor = model.named_steps["pre"]
 
-st.sidebar.header("Patient et Rendez-vous")
+st.sidebar.header("Patient and Appointment")
 
 age = st.sidebar.slider("Age", 0, 110, 54)
 gender = st.sidebar.selectbox("Gender", ["F", "M"])
@@ -40,10 +40,10 @@ sms_received = st.sidebar.selectbox("SMS_received", [0, 1])
 delay_days = st.sidebar.slider("Delay_days", 0, 100, 5)
 hour_scheduled = st.sidebar.slider("Hour_scheduled", 0, 23, 10)
 weekday = st.sidebar.selectbox("Weekday_appointment", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"])
-threshold = st.sidebar.slider("Seuil operationnel", 0.1, 0.9, 0.35, 0.05)
+threshold = st.sidebar.slider("Operational threshold", 0.1, 0.9, 0.35, 0.05)
 
 st.title("no-show-predictor")
-st.caption("Decision Support System for Medical Appointment No-Show Prediction | Author: Kokouvi Ferdinand DJATA - Ferdio Ai Vision @ferdioaivision")
+st.caption("Predicting medical appointment no-shows - Binary classification decision support system | Author: Kokouvi Ferdinand DJATA - Ferdio Ai Vision")
 
 st.success("Model loaded")
 
@@ -72,33 +72,33 @@ if st.button("Predict No-show Probability"):
 
     with col1:
         st.metric("P(No-show=1 | X)", f"{proba:.3f}")
-        st.metric("Prediction au seuil", "No-show" if pred == 1 else "Show")
+        st.metric("Prediction at threshold", "No-show" if pred == 1 else "Show")
 
         if pred == 1:
             st.warning("High risk: Recommendation = targeted phone call + personalized SMS, consider overbooking mitigation")
         else:
             st.info("Low risk: Standard reminder")
 
-        with st.expander("Details du modele et interpretabilite"):
-            st.write(f"Feuille atteinte: {leaf_id}")
-            st.write(f"Profondeur maximale: {clf.max_depth}")
-            st.write(f"Nombre de feuilles: {clf.get_n_leaves()}")
-            st.write("Le modele classe le patient selon le chemin decisionnel appris sur 110521 rendez-vous.")
+        with st.expander("Model Details and Interpretability"):
+            st.write(f"Leaf reached: {leaf_id}")
+            st.write(f"Maximum depth: {clf.max_depth}")
+            st.write(f"Number of leaves: {clf.get_n_leaves()}")
+            st.write("Decision path learned from 110521 appointments. See notebooks/EDA_and_Modeling.ipynb for SHAP and feature importance.")
 
     with col2:
         with st.container(border=True):
-            st.subheader("A propos du modele")
-            st.write("Modele: DecisionTree")
-            st.write("Parametres: max_depth=7, min_samples_split=10, class_weight=balanced")
-            st.write("Validation croisee 5-fold ROC-AUC: 0.72529")
+            st.subheader("About the Model")
+            st.write("Model: DecisionTree")
+            st.write("Parameters: max_depth=7, min_samples_split=10, class_weight=balanced")
+            st.write("5-fold CV ROC-AUC: 0.72529")
             st.write("Test ROC-AUC: 0.72462")
             st.write("Test Recall: 0.8776")
-            st.write("Dataset: Kaggle Medical Appointment No Shows")
+            st.write("Dataset: Kaggle Medical Appointment No Shows - 110521 rows")
 
-        with st.expander("Methodologie"):
-            st.write("Split stratifie 80/20 seed 42")
-            st.write("Gestion du desequilibre: class_weight balanced et seuil operationnel 0.35")
-            st.write("Variables les plus predictives: Delay_days, Scholarship, Age, Neighbourhood")
+        with st.expander("Methodology"):
+            st.write("Stratified split 80/20 seed 42, 5-fold CV ROC-AUC")
+            st.write("Imbalance handling: class_weight balanced + threshold 0.35 optimized for recall")
+            st.write("Top predictors: Delay_days, Scholarship, Age, Neighbourhood")
 
 st.divider()
-st.caption("Operational threshold 0.35 balances precision vs recall. Current best model ROC-AUC 0.7247 on test set. Outil d'aide a la decision uniquement. Ne pas utiliser pour refuser un rendez-vous. Necessite recalibration locale. Aucune donnee patient stockee. MIT License 2026 Kokouvi Ferdinand DJATA - Ferdio Ai Vision.")
+st.caption("Operational threshold 0.35 balances precision vs recall. Best model ROC-AUC 0.72462 > 0.70 required, Recall 0.8776 > 0.65 required. Decision support only - not for denying appointments. Requires local recalibration. No patient data stored. MIT License - Ferdio Ai Vision - Kokouvi Ferdinand DJATA")
