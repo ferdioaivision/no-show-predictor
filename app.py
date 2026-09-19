@@ -101,4 +101,4 @@ if st.button("Predict No-show Probability"):
             st.write("Top predictors: Delay_days, Scholarship, Age, Neighbourhood")
 
 st.divider()
-st.caption("Operational threshold 0.35 balances precision vs recall. Best model ROC-AUC 0.72462 > 0.70 required, Recall 0.8776 > 0.65 required. Decision support only - not for denying appointments. Requires local recalibration. No patient data stored. MIT License - Ferdio Ai Vision - Kokouvi Ferdinand DJATA")
+st.caption("Operational threshold 0.35 balances precision vs recall. Best model ROC-AUC 0.72462 > 0.70 required, Recall 0.8776 > 0.65 required. Decision support only - not for denying appointments. Requires local recalibration. No patient data stored. MIT License - Ferdio Ai Vision")
