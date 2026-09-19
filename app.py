@@ -43,7 +43,7 @@ weekday = st.sidebar.selectbox("Weekday_appointment", ["Monday", "Tuesday", "Wed
 threshold = st.sidebar.slider("Operational threshold", 0.1, 0.9, 0.35, 0.05)
 
 st.title("no-show-predictor")
-st.caption("Predicting medical appointment no-shows - Binary classification decision support system | Author: Kokouvi Ferdinand DJATA - Ferdio Ai Vision")
+st.caption("Predicting medical appointment no-shows - Binary classification decision support system | Author: Ferdio Ai Vision")
 
 st.success("Model loaded")
 
