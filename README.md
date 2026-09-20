@@ -1,94 +1,96 @@
 # no-show-predictor
-### Predicting medical appointment no-shows - Binary classification decision support system
 
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue) ![ROC-AUC](https://img.shields.io/badge/ROC--AUC-0.7246-brightgreen) ![Status](https://img.shields.io/badge/Status-Complete-success) ![License](https://img.shields.io/badge/License-MIT-green) [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ferdioaivision-no-show-predictor.streamlit.app/)
+Predicting medical appointment no-shows from information available when the appointment is scheduled, with an evaluation designed to avoid over-optimistic numbers: patient-grouped split, cross-validated model comparison, calibrated probabilities, a threshold chosen without touching the test set, and comparison with simple references.
 
-**Author:** Kokouvi Ferdinand DJATA
-**Brand:** Ferdio Ai Vision
-**GitHub:** @ferdioaivision
+![Python](https://img.shields.io/badge/Python-3.12%20(tested)-blue) ![License](https://img.shields.io/badge/License-MIT-green) [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ferdioaivision-no-show-predictor.streamlit.app/)
 
-#### Problem Formulation
-Binary supervised classification: Estimate P(No-show=1 | X) where X = demographic, socio-economic, temporal, medical features available at scheduling time.
+Author: Kokouvi Ferdinand DJATA - GitHub: [@ferdioaivision](https://github.com/ferdioaivision) (Ferdio AI Vision). Tested with Python 3.12 and scikit-learn 1.9.0.
 
-#### Dataset - Verified
-- Source: Kaggle Medical Appointment No Shows - KaggleV2-May-2016.csv 10488 Ko
-- Raw: 110527 rows
-- After cleaning: 110521 rows (6 invalid Age removed)
-- Imbalance: 79.81% Show / 20.19% No-show
-- Typo fixed: Handcap -> Handicap
-- Cleaned: cleaned.csv 12133 Ko
+## 1. Data
 
-#### Feature Engineering
-- Delay_days = (AppointmentDay - ScheduledDay) clipped 0 + Delay_negative_flag
-- Weekday_appointment, Hour_scheduled, Handicap_bin
-- One-hot: Gender, Neighbourhood (82), Weekday
+Kaggle *Medical Appointment No Shows* (`KaggleV2-May-2016.csv`), one row per appointment, Brazil, 2016 (the source does not name the hospital or clinics). Check the dataset's terms of use on Kaggle before redistributing the raw file.
 
-#### Methodology (8 Steps)
-1. EDA: 10 figures + Chi2 tests
-2. Preprocessing: drop IDs, age filter 0-110
-3. Split: stratified 80/20 seed 42, 5-fold CV ROC-AUC
-4. Imbalance: class_weight balanced + threshold 0.35
-5. Models: LogReg C {0.01,0.1,1,10}, DecisionTree depth {3,5,7,10} min_split {2,5,10}, KNN k {3,5,7,9,11}
-6. Evaluation: confusion matrix, accuracy, precision, recall, F1, ROC-AUC, PR-AUC
-7. Interpretation
-8. Deployment: Streamlit app
+| Step | Rows |
+|---|---|
+| Raw file | 110,527 |
+| Age < 0 or > 110 removed | 6 |
+| Appointment date before scheduling date removed (impossible) | 5 |
+| **Clean** | **110,516** (62,296 patients, 81 neighbourhoods, 20.19 % no-show) |
 
-#### Verified Results - Your Local Execution
+`Delay_days` is the number of **calendar days** between scheduling and appointment. The file stores the appointment as a date at 00:00 but the scheduling as a full timestamp, so a difference in fractional days would make every same-day appointment look negative. `Same_day` (delay = 0) is added because the no-show rate jumps from 4.6 % on the same day to 21.4 % one day ahead, a step a linear model cannot represent from `Delay_days` alone (test ROC-AUC 0.66 without it, 0.72 with it).
 
-| Model | Best Params | CV ROC-AUC | Test Accuracy | Precision | Recall | F1 | Test ROC-AUC | PR-AUC |
-|-------|-------------|------------|---------------|-----------|--------|----|--------------|--------|
-| LogisticRegression | C=0.01 | 0.72133 | 0.5623 | 0.2987 | 0.8669 | 0.4443 | 0.72032 | 0.3417 |
-| **DecisionTree** | **depth=7, min_split=10** | **0.72529** | **0.5538** | **0.2960** | **0.8776** | **0.4426** | **0.72462** | **0.3440** |
-| KNN | k=11 | 0.69837 | 0.7855 | 0.4004 | 0.1248 | 0.1902 | 0.70292 | 0.3276 |
+## 2. Method
 
-Best: DecisionTree ROC-AUC 0.72462 >0.70 required, Recall 0.8776 >0.65 required.
+- **Split by patient.** 39 % of patients have several appointments (1.77 per patient on average). With a plain random split, 59.8 % of the test appointments belong to a patient who is also in the training set. This leak is harmless for the logistic regression and the tree, but it inflates k-NN (ROC-AUC 0.703 on a random split vs 0.690 on a patient-grouped split, same k). The split here is stratified and grouped (`StratifiedGroupKFold`): 88,412 training and 22,104 test appointments, same no-show rate in both, no shared patient.
+- **Model selection on cross-validation only**: patient-grouped 5-fold CV on the training set, ROC-AUC scoring. The test set is used once, for reporting.
+- **No class weighting.** It leaves the ranking unchanged but pushes the predicted probabilities to about 0.44 on average for a 20 % base rate. Without it the mean prediction is 0.201 for an observed rate of 0.202 (calibration curve in `figures/calibration.png`).
+- **Threshold chosen without the test set.** For a target recall, the threshold is the highest one reaching that recall on out-of-fold predictions of the training set; it is then evaluated once on the test set.
+- **References that need no model**: ranking by `Delay_days` alone, and a random ranking.
 
-#### Key Insights
-- Delay_days strongest: 12% no-show delay 0 vs >35% delay 30+
-- SMS paradox: 16.8% without SMS vs 27.5% with SMS (selection bias)
-- Scholarship 19.8% vs 23.6%, Saturday highest weekday
+## 3. Results (held-out patients)
 
-#### Limitations and Scientific Perspectives
+| Model | Best parameters | CV ROC-AUC (+/- sd) | Test ROC-AUC | Test PR-AUC | Test Brier |
+|---|---|---|---|---|---|
+| LogisticRegression | C = 0.01 | 0.7213 (0.0036) | 0.7196 | 0.3478 | 0.1453 |
+| **DecisionTree** (deployed) | depth 7, min leaf 1000 | 0.7256 (0.0038) | 0.7228 | 0.3436 | 0.1450 |
+| KNN | k = 201 | 0.7221 (0.0025) | 0.7250 | 0.3510 | 0.1447 |
+| `Delay_days` alone (no model) | - | - | 0.6943 | 0.3035 | - |
+| Random ranking | - | - | 0.5000 | 0.2019 | - |
 
-##### Dataset and External Validity
-- Single-center data from Brazil 2016 (110521 rows after cleaning). No geographic, temporal, or institutional external validation. Generalization to other health systems (e.g., Togo, France) requires local recalibration.
-- No patient history of previous no-shows, distance to clinic, transport, weather, or provider-level features. This limits predictive ceiling (current best ROC-AUC 0.72462).
+The three models are equivalent: their CV differences are smaller than the CV standard deviation. The decision tree is deployed because it is small and interpretable. The k-NN model is not saved (it stores the whole training set, about 70 MB). Its k grid had to be widened: with k up to 11 the k-NN looked clearly worse (0.70) than the other models, but AUC keeps improving with k. The tree's best `min_samples_leaf` is at the upper end of its grid, but the AUC differences between 300 and 1000 are below the CV standard deviation.
 
-##### Modeling and Calibration
-- Imbalance handled with `class_weight=balanced` and operational threshold 0.35 optimized for recall (0.8776). This overestimates P(No-show) and requires probability calibration (Platt/Isotonic) before use as true risk score.
-- Best model is DecisionTree depth=7 (interpretable, 23 Ko). Trade-off: lower capacity than ensembles. RandomForest/XGBoost may improve ROC-AUC but reduce interpretability.
-- No calibration curve, no decision curve analysis, no fairness audit across Neighbourhood (82 categories) and Scholarship.
+**Operating points of the deployed tree** (thresholds from training out-of-fold predictions, metrics on the test set; 20.2 % of appointments are no-shows):
 
-##### Statistical and Causal Limitations
-- Observational study. SMS_received shows paradoxical association (16.8% no-show without SMS vs 27.5% with SMS) due to selection bias: high-risk patients are more likely to receive SMS. Correlation does not imply causal effect of SMS.
-- Delay_days is strongest predictor (12% no-show at delay 0 vs >35% at delay 30+) but confounded by scheduling policies.
+| Target recall | Threshold | Test recall | Test precision | Appointments flagged |
+|---|---|---|---|---|
+| 0.50 | 0.285 | 0.516 | 0.348 | 29.9 % |
+| **0.65 (default)** | **0.254** | **0.652** | **0.324** | **40.7 %** |
+| 0.80 | 0.215 | 0.779 | 0.309 | 50.8 % |
 
-##### Operational and Ethical
-- Decision support only. Must not be used to deny appointments. Requires explicit threshold policy (e.g., P >= 0.35 = targeted phone call, not overbooking alone).
-- No patient data stored in the Streamlit app. For hospital deployment, compliance with local data protection and audit logging is required.
+Precision at the default operating point is 1.6 times the base rate. The model helps to prioritise reminder calls; it does not identify no-shows reliably.
 
-##### Future Work
-1. Local recalibration: retrain on hospital-specific data with temporal validation (train on past months, test on future months).
-2. Add features: history of no-shows, distance, weather, provider, clinic load.
-3. Calibration and cost-sensitive evaluation: calibrated probabilities, expected cost of overbooking vs idle slot.
-4. Fairness and robustness: subgroup ROC-AUC by Age, Gender, Neighbourhood, Scholarship; stability over time.
-5. Prospective pilot: A/B test of targeted reminders vs standard care, with primary outcome no-show rate and secondary outcome utilization.
+![ROC and PR](figures/roc_pr_curves.png)
 
-#### Structure Verified
+## 4. What drives no-shows
+
+- **Lead time dominates.** No-show rate by delay: same day 4.65 %, 1 day 21.35 %, 2-7 days 24.68 %, 8-15 days 30.80 %, 16-30 days 32.51 %, more than 30 days 33.00 %. Permutation importance (drop in test ROC-AUC): `Delay_days` 0.204, `Age` 0.031, `SMS_received` 0.006, `Hour_scheduled` 0.003; all other features are below 0.002 (`Scholarship` and `Neighbourhood` are at zero).
+- **The delay does most of the work.** A tree using only the delay reaches ROC-AUC 0.695, delay plus age 0.719, the full model 0.723.
+- **The SMS "paradox" is a lead-time effect.** Crude no-show rate is 16.7 % without SMS and 27.6 % with SMS, but SMS reminders are never sent for appointments booked 2 days ahead or less, and those have low no-show rates. At equal delay, recipients have a lower no-show rate: 23.8 % vs 26.6 % (3-7 days), 28.5 % vs 34.1 % (8-15), 29.7 % vs 36.8 % (16-30), 30.2 % vs 37.5 % (over 30). This is still an association from observational data, not proof of an effect.
+- **Weak associations.** Cramer's V: same-day 0.283, SMS 0.127, hypertension 0.036, scholarship 0.029 (19.8 % vs 23.7 % no-show), weekday 0.016. Saturday has the highest rate (23.1 %) but only 39 appointments.
+
+![Feature importance](figures/feature_importance.png)
+
+## 5. Structure
+
 ```
 no-show-predictor/
-├── data/ (KaggleV2-May-2016.csv, cleaned.csv, chi2_results.csv, model_comparison.csv)
-├── figures/ (21 PNG: 01_ to 10_ + cm/pr/roc + threshold)
-├── models/ (best_model 23 Ko, feature_list 1 Ko, DecisionTree 23 Ko, KNN 69081 Ko, LogReg 7 Ko)
-├── notebooks/ (EDA_and_Modeling.ipynb 1302 Ko)
-├── src/ (evaluation.py, preprocessing.py, train.py)
-├── app.py, requirements.txt, README.md
+├── data/       KaggleV2-May-2016.csv, model_comparison.csv, chi2_results.csv
+├── figures/    EDA (01-04) and evaluation figures (roc_pr_curves, calibration, threshold_tradeoff, feature_importance)
+├── models/     model_DecisionTree.joblib, model_LogisticRegression.joblib, metadata.json
+├── notebooks/  EDA_and_Modeling.ipynb   (run from the notebooks/ folder)
+├── src/        preprocessing.py, evaluation.py, train.py
+├── app.py      Streamlit app
+└── requirements.txt
 ```
 
-#### How to Run
-pip install -r requirements.txt
-python src/train.py
-streamlit run app.py
+## 6. How to run
 
-#### License
-MIT - Ferdio Ai Vision - Kokouvi Ferdinand DJATA
+```bash
+pip install -r requirements.txt
+python src/train.py          # about 10-15 minutes on one CPU (the k-NN grid is the slow part); writes models/, data/model_comparison.csv
+streamlit run app.py
+```
+
+The saved models were produced with scikit-learn 1.9.0, which `requirements.txt` pins. If the saved file cannot be loaded (different version), the app refits the decision tree from the dataset with the stored parameters.
+
+## 7. Limitations
+
+- A single Brazilian dataset from 2016 with unidentified site(s). The split is by patient, not by date, so temporal drift is not evaluated; a hospital deployment needs local retraining and validation on future months.
+- No history of previous no-shows, distance, provider or appointment reason. The patient id could provide the history (using past appointments only) and would be the first feature to try.
+- Observational data: no causal claim about SMS reminders or any other feature.
+- No fairness audit across neighbourhoods, age groups or scholarship status.
+- Ranking quality is modest (ROC-AUC 0.72, PR-AUC 0.34 vs 0.20 at random). Use as decision support for prioritising reminder calls, never to refuse or cancel appointments.
+
+## 8. License
+
+MIT - Ferdio AI Vision - Kokouvi Ferdinand DJATA

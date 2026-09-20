@@ -1,0 +1,93 @@
+{
+  "trained_with": {
+    "scikit-learn": "1.9.0",
+    "pandas": "3.0.2",
+    "numpy": "2.5.3"
+  },
+  "seed": 42,
+  "cleaning": {
+    "raw_rows": 110527,
+    "invalid_age_removed": 6,
+    "appointment_before_scheduling_removed": 5,
+    "clean_rows": 110516,
+    "no_show_rate": 0.20188027073003004,
+    "unique_patients": 62296,
+    "neighbourhoods": 81
+  },
+  "split": {
+    "train_rows": 88412,
+    "test_rows": 22104,
+    "shared_patients": 0,
+    "no_show_rate_train": 0.20188435958919604,
+    "no_show_rate_test": 0.20186391603329715
+  },
+  "deployed_model": "DecisionTree",
+  "deployed_params": {
+    "clf__max_depth": 7,
+    "clf__min_samples_leaf": 1000
+  },
+  "cv_roc_auc": 0.7255979457272882,
+  "test": {
+    "roc_auc": 0.7228143552952234,
+    "pr_auc": 0.3435937244501165,
+    "brier": 0.1450019750271495
+  },
+  "target_recall": 0.65,
+  "threshold": 0.2536656891495601,
+  "operating_points": {
+    "0.5": {
+      "target_recall_oof": 0.5,
+      "threshold": 0.2851881083925283,
+      "accuracy": 0.707609482446616,
+      "precision": 0.34847796456156294,
+      "recall": 0.5156880322725236,
+      "f1": 0.4159060099412562,
+      "flagged_rate": 0.2987242128121607,
+      "tp": 2301,
+      "fp": 4302,
+      "fn": 2161,
+      "tn": 13340
+    },
+    "0.65": {
+      "target_recall_oof": 0.65,
+      "threshold": 0.2536656891495601,
+      "accuracy": 0.6546778863554108,
+      "precision": 0.32361775503393037,
+      "recall": 0.651949798296728,
+      "f1": 0.43253289718236565,
+      "flagged_rate": 0.4066684762938835,
+      "tp": 2909,
+      "fp": 6080,
+      "fn": 1553,
+      "tn": 11562
+    },
+    "0.8": {
+      "target_recall_oof": 0.8,
+      "threshold": 0.21544327931363202,
+      "accuracy": 0.6045512124502352,
+      "precision": 0.3094326177963837,
+      "recall": 0.7785746302106679,
+      "f1": 0.44285805341321943,
+      "flagged_rate": 0.5079171190734708,
+      "tp": 3474,
+      "fp": 7753,
+      "fn": 988,
+      "tn": 9889
+    }
+  },
+  "permutation_importance_auc_drop": {
+    "Delay_days": 0.20434503894403408,
+    "Age": 0.03127072350012701,
+    "SMS_received": 0.00579359613643553,
+    "Hour_scheduled": 0.002606195861908289,
+    "Gender": 0.0006332340446484564,
+    "Hipertension": 0.00018036651158088725,
+    "Diabetes": 0.00012145921693424988,
+    "Neighbourhood": 0.0,
+    "Scholarship": 0.0,
+    "Handicap_bin": 0.0,
+    "Alcoholism": 0.0,
+    "Same_day": 0.0,
+    "Weekday_appointment": -0.0004918761008515738
+  }
+}
